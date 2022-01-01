@@ -1,3 +1,5 @@
+// Mykola Gutsaliuk 1/1/2022
+// Script to check old static ram chips
 #include <Arduino.h>
 #include <math.h>
 // address pins
