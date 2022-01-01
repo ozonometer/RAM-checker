@@ -6,9 +6,14 @@ const byte AD0 = 22, AD1 = 23, AD2 = 24, AD3 = 25, AD4 = 26, AD5 = 27, AD6 = 28,
 const byte DD0 = 40, DD1 = 41, DD2 = 42, DD3 = 43, DD4 = 44, DD5 = 45, DD6 = 46, DD7 = 47;
 // control pins
 const byte OE = 50, WE = 51;
+// set max memory address
+int maxAddress = 32768; // AS7C256 - Organization: 32,768 words × 8 bits
 
-const int nibbles = 4;                  // used to create array to store hex conversion
-const int addressPins = 15;             // size of max address, AS7C256 has address pins A0-A14 so max size of address is 15 bytes
+const int nibbles = 4;                          // used to create array to store hex conversion
+const int addressPins = 15;                     // size of max address, AS7C256 has address pins A0-A14 so max size of address is 15 bytes
+boolean pass = true;                            // test result pass
+int testRuns = 1;                               // number of thest runs
+int loops = 0;                                  // do not change, loop counter
 
 int binStringToInt(const char binary[], int bytes);
 void intToBinaryChars(int *binaryArr, int integer, int bytes);
@@ -21,6 +26,9 @@ int binIntArrayToInt(int *binaryP, int bytes);
 void setAddresIntValue(int address);
 int binIntArrayToInt(int *binaryP, int bytes);
 void setAddresIntValue(int address);
+void convertInToHexPrint(int address);
+void convertInToHexPrint(int address, int maxAddress);
+int test(int writeData[], int maxAddress);
 
 void setup() {
   // address pins always outputs
@@ -48,53 +56,34 @@ void setup() {
 }
 
 void loop() {
-
-  int maxAddress = 32768; // AS7C256 - Organization: 32,768 words × 8 bits
-  //write to each memory cell
-  pinsOutput();
-  for(int address = 0; address < maxAddress; address++) {
-    setAddresIntValue(address);
-    //delay(2);
-    digitalWrite(WE, 0); // enable write, pulling WE low
-    //delay(2);
-    writeToRam(1, 1, 1, 1, 1, 1, 1, 1);
-    //delay(2);
-    digitalWrite(WE, 1); // disable write
-    //delay(2);
-    SerialUSB.print("\nWriting cell # ");
-    SerialUSB.print(address);
-  }
-  SerialUSB.println("Write completed!");
-  //read from each memory cell
-  int binaryResultArr[8];       // array to store int result
-  int *binaryRpointer;          // pointer to start of array
-  char hexArr[nibbles];         // array to store address hex
-  char *pChar;                  // pointer to start of array
-  pinsInput();
-  for(int address = 0; address < maxAddress; address++) {
-    // set address
-    setAddresIntValue(address);
-    // read
-    //delay(2);
-    digitalWrite(OE, 0);        // enable read, pulling OE low 
-    //delay(2);
-    binaryRpointer = &binaryResultArr[0];
-    readData(binaryRpointer);
-    //delay(2);
-    digitalWrite(OE, 1);        // desable read
-    //delay(2);
-    //address convert to hex
-    pChar = &hexArr[0];         // set pointer to address of the first array cell
-    intToHex(pChar, address, 15, 4);
-    SerialUSB.print("\nReading memory address ");
-    for(int ik = 0; ik < 4; ik++) {
-     SerialUSB.print(hexArr[ik]);  
+    delay(5000);
+    if(loops < testRuns) {
+        int testPassed = 0;
+        // test 1
+        int writeData1[8] = {0, 0, 0, 0, 0, 0, 0, 0};    // data to write
+        testPassed = test(writeData1, maxAddress);
+        if(testPassed == 0) {
+            pass = false;
+        }
+        // test 2
+        int writeData2[8] = {1, 1, 1, 1, 1, 1, 1, 1};    // data to write
+        testPassed = test(writeData2, maxAddress);
+        if(testPassed == 0) {
+            pass = false;
+        }
+        // test 3
+        int writeData3[8] = {1, 0, 1, 0, 1, 0, 1, 0};    // data to write
+        testPassed = test(writeData3, maxAddress);
+        if(testPassed == 0) {
+            pass = false;
+        }
+        if(pass) {
+            SerialUSB.println("\nTEST PASSED");
+        } else {
+            SerialUSB.println("\nTEST FAILED!");
+        }
     }
-    SerialUSB.print(", data = ");
-    for(int in = 0; in < 8; in++) {
-     SerialUSB.print(binaryResultArr[in]);
-    }
-  }
+    loops++;
  }
 
 void pinsInput() {
@@ -128,6 +117,80 @@ void writeToRam(int b0, int b1, int b2, int b3, int b4, int b5, int b6, int b7) 
   digitalWrite(DD5, b5);
   digitalWrite(DD6, b6);
   digitalWrite(DD7, b7);
+}
+
+/**
+ * Test which writes 
+ * @param writeData 8 bit data patern to write and then read back
+ * @return int, if test passed then return 1, if fails then return 0
+ */
+int test(int writeData[], int maxAddress) {
+    int result = 1; // test result
+    //write to each memory cell
+    pinsOutput();
+    for(int address = 0; address < maxAddress; address++) {
+        setAddresIntValue(address);
+        //delay(2);
+        digitalWrite(WE, 0); // enable write, pulling WE low
+        //delay(2);
+        writeToRam(writeData[0], writeData[1], writeData[2], writeData[3], writeData[4], writeData[5], writeData[6], writeData[7]);
+        //delay(2);
+        digitalWrite(WE, 1); // disable write
+        //delay(2);
+        SerialUSB.print("\nWriting to memory address ");
+        convertInToHexPrint(address);
+    }
+    SerialUSB.println("Write completed!");
+    //read from each memory cell
+    int binaryResultArr[8];       // array to store int result
+    int *binaryRpointer;          // pointer to start of array
+    pinsInput();
+    for(int address = 0; address < maxAddress; address++) {
+        // set address
+        setAddresIntValue(address);
+        // read
+        //delay(2);
+        digitalWrite(OE, 0);        // enable read, pulling OE low 
+        //delay(2);
+        binaryRpointer = &binaryResultArr[0];
+        readData(binaryRpointer);
+        //delay(2);
+        digitalWrite(OE, 1);        // desable read
+        //delay(2);
+        //address convert to hex
+        SerialUSB.print("\nReading from memory address ");
+        convertInToHexPrint(address);
+        boolean dataSame = true;
+        SerialUSB.print(", data = ");
+        for(int in = 0; in < 8; in++) {
+            SerialUSB.print(binaryResultArr[in]);
+            if(binaryResultArr[in] != writeData[in]) {
+                dataSame = false;
+            }
+        }
+        if(dataSame) {
+            SerialUSB.print(" pass");
+        } else {
+            SerialUSB.print(" fail");
+            result = 0; // this cell fail, entire test fail
+        }
+    } 
+    return result;
+}
+
+/**
+ * This will convert int to hex and print to serial
+ * @param address integer to convert to hex
+ */
+void convertInToHexPrint(int address){
+    char hexArr[nibbles];         // array to store address hex
+    char *pChar;                  // pointer to start of array
+    //address convert to hex
+    pChar = &hexArr[0];         // set pointer to address of the first array cell
+    intToHex(pChar, address, 15, 4);
+    for(int ik = 0; ik < 4; ik++) {
+        SerialUSB.print(hexArr[ik]);  
+    }
 }
 
 void setAddresIntValue(int address){
