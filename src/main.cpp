@@ -2,12 +2,12 @@
 #include <math.h>
 // address pins
 const byte AD0 = 22, AD1 = 23, AD2 = 24, AD3 = 25, AD4 = 26, AD5 = 27, AD6 = 28, AD7 = 29, AD8 = 30, AD9 = 31, AD10 = 32, AD11 = 33, AD12 = 34, AD13 = 35, AD14 = 36;
-// DDta pins
+// Data pins
 const byte DD0 = 40, DD1 = 41, DD2 = 42, DD3 = 43, DD4 = 44, DD5 = 45, DD6 = 46, DD7 = 47;
-// controll pins
+// control pins
 const byte OE = 50, WE = 51;
 
-const int nibbles = 4;            // used to create array to store hex conversion
+const int nibbles = 4;                  // used to create array to store hex conversion
 const int addressPins = 15;             // size of max address, AS7C256 has address pins A0-A14 so max size of address is 15 bytes
 
 int binStringToInt(const char binary[], int bytes);
@@ -67,21 +67,21 @@ void loop() {
   SerialUSB.println("Write completed!");
   //read from each memory cell
   int binaryResultArr[8];       // array to store int result
-  int *binaryRpointer;               // pointer to start of array
-  char hexArr[nibbles];       // array to store address hex
-  char *pChar;                // pointer to start of array
+  int *binaryRpointer;          // pointer to start of array
+  char hexArr[nibbles];         // array to store address hex
+  char *pChar;                  // pointer to start of array
   pinsInput();
   for(int address = 0; address < maxAddress; address++) {
     // set address
     setAddresIntValue(address);
     // read
     //delay(2);
-    digitalWrite(OE, 0); // enable read, pulling OE low 
+    digitalWrite(OE, 0);        // enable read, pulling OE low 
     //delay(2);
     binaryRpointer = &binaryResultArr[0];
     readData(binaryRpointer);
     //delay(2);
-    digitalWrite(OE, 1); // desable read
+    digitalWrite(OE, 1);        // desable read
     //delay(2);
     //address convert to hex
     pChar = &hexArr[0];         // set pointer to address of the first array cell
@@ -132,8 +132,8 @@ void writeToRam(int b0, int b1, int b2, int b3, int b4, int b5, int b6, int b7) 
 
 void setAddresIntValue(int address){
   int binaryArr[addressPins];       // array to store result
-    int *binaryP;               // pointer to start of array
-    binaryP = &binaryArr[0];    // set pointer to address of the first array cell
+    int *binaryP;                   // pointer to start of array
+    binaryP = &binaryArr[0];        // set pointer to address of the first array cell
     intToBinaryChars(binaryP, address, addressPins);
     // set address
     digitalWrite(AD0, binaryArr[0]);
@@ -200,7 +200,7 @@ void intToBinaryChars(int *binaryArr, int integer, int bytes) {
  * @param nibbles size of nibbles to store hex result, 1 nibble = 4 bites
  */
 void intToHex(char *hex, int integer, int bytes, int nibbles) {
-    int binary[bytes]; // store binary representation
+    int binary[bytes];      // store binary representation
     int i = bytes;          // counter to loop through binary array and store values
     int num = integer;
     // clear the array of junk values
@@ -216,11 +216,11 @@ void intToHex(char *hex, int integer, int bytes, int nibbles) {
         num = num / 2;
     }
 
-    int power = pow (2, nibbles - 1); // largest bite value
+    int power = pow (2, nibbles - 1);   // largest bite value
     int multiply = power;
     int value = 0;
     for(int j = 0; j <= bytes + 1; j++) {
-        if(multiply == 0) {     // when reached zero, calculate next nibble value
+        if(multiply == 0) {             // when reached zero, calculate next nibble value
             multiply = power;
             // convert value to hex
             switch (value) {
@@ -245,7 +245,7 @@ void intToHex(char *hex, int integer, int bytes, int nibbles) {
                 default:
                     *hex++ = value + 48; // to display num char
             }
-            value = 0; // reset value for the next nibble
+            value = 0;                  // reset value for the next nibble
         }
         // if byte is 1 then calculate by its value
         if (binary[j] == 1) {
