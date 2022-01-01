@@ -1,13 +1,11 @@
 #include <Arduino.h>
 #include <math.h>
 // address pins
-const byte AD0 = 0, AD1 = 1, AD2 = 2, AD3 = 3, AD4 = 4, AD5 = 5, AD6 = 6, AD7 = 7, AD8 = 8, AD9 = 9, AD10 = 10, AD11 = 11, AD12 = 12, AD13 = 13, AD14 = 23;
+const byte AD0 = 22, AD1 = 23, AD2 = 24, AD3 = 25, AD4 = 26, AD5 = 27, AD6 = 28, AD7 = 29, AD8 = 30, AD9 = 31, AD10 = 32, AD11 = 33, AD12 = 34, AD13 = 35, AD14 = 36;
 // DDta pins
-const byte DD0 = 30, DD1 = 31, DD2 = 32, DD3 = 33, DD4 = 34, DD5 = 35, DD6 = 36, DD7 = 37;
+const byte DD0 = 40, DD1 = 41, DD2 = 42, DD3 = 43, DD4 = 44, DD5 = 45, DD6 = 46, DD7 = 47;
 // controll pins
-const byte OE = 38, WE = 39;
-
-int b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0;
+const byte OE = 50, WE = 51;
 
 const int nibbles = 4;            // used to create array to store hex conversion
 const int addressPins = 15;             // size of max address, AS7C256 has address pins A0-A14 so max size of address is 15 bytes
@@ -23,8 +21,6 @@ int binIntArrayToInt(int *binaryP, int bytes);
 void setAddresIntValue(int address);
 int binIntArrayToInt(int *binaryP, int bytes);
 void setAddresIntValue(int address);
-
-
 
 void setup() {
   // address pins always outputs
@@ -58,10 +54,13 @@ void loop() {
   pinsOutput();
   for(int address = 0; address < maxAddress; address++) {
     setAddresIntValue(address);
+    //delay(2);
     digitalWrite(WE, 0); // enable write, pulling WE low
-    delayMicroseconds(5);
+    //delay(2);
     writeToRam(1, 1, 1, 1, 1, 1, 1, 1);
+    //delay(2);
     digitalWrite(WE, 1); // disable write
+    //delay(2);
     SerialUSB.print("\nWriting cell # ");
     SerialUSB.print(address);
   }
@@ -76,11 +75,14 @@ void loop() {
     // set address
     setAddresIntValue(address);
     // read
-    binaryRpointer = &binaryResultArr[0];
+    //delay(2);
     digitalWrite(OE, 0); // enable read, pulling OE low 
-    delayMicroseconds(5);
+    //delay(2);
+    binaryRpointer = &binaryResultArr[0];
     readData(binaryRpointer);
+    //delay(2);
     digitalWrite(OE, 1); // desable read
+    //delay(2);
     //address convert to hex
     pChar = &hexArr[0];         // set pointer to address of the first array cell
     intToHex(pChar, address, 15, 4);
@@ -90,10 +92,9 @@ void loop() {
     }
     SerialUSB.print(", data = ");
     for(int in = 0; in < 8; in++) {
-     SerialUSB.print(binaryResultArr[in]);  
+     SerialUSB.print(binaryResultArr[in]);
     }
   }
-
  }
 
 void pinsInput() {
@@ -150,26 +151,6 @@ void setAddresIntValue(int address){
     digitalWrite(AD12, binaryArr[12]);
     digitalWrite(AD13, binaryArr[13]);
     digitalWrite(AD14, binaryArr[14]);
-    //setAddres(binaryArr[0], binaryArr[1], binaryArr[2], binaryArr[3], binaryArr[4], binaryArr[5], binaryArr[6], binaryArr[7], 
-    //          binaryArr[8], binaryArr[9], binaryArr[10], binaryArr[11], binaryArr[12], binaryArr[13], binaryArr[14]);
-}
-
-void setAddres(int b0, int b1, int b2, int b3, int b4, int b5, int b6, int b7, int b8, int b9, int b10, int b11, int b12, int b13, int b14) {
-  digitalWrite(AD0, b0);
-  digitalWrite(AD1, b1);
-  digitalWrite(AD2, b2);
-  digitalWrite(AD3, b3);
-  digitalWrite(AD4, b4);
-  digitalWrite(AD5, b5);
-  digitalWrite(AD6, b6);
-  digitalWrite(AD7, b7);
-  digitalWrite(AD8, b8);
-  digitalWrite(AD9, b9);
-  digitalWrite(AD10, b10);
-  digitalWrite(AD11, b11);
-  digitalWrite(AD12, b12);
-  digitalWrite(AD13, b13);
-  digitalWrite(AD14, b14);
 }
 
 /**
@@ -191,7 +172,7 @@ int binStringToInt(const char binary[], int bytes) {
 }
 
 /**
- * This method converts integer to bytes array
+ * This method converts integer to bytes array, then to be used to write it to data pins
  * @param binaryArr pointer to the address array 0 index used to store result
  * @param integer integer to convert
  * @param bytes size of the integer in binary representation
@@ -212,7 +193,7 @@ void intToBinaryChars(int *binaryArr, int integer, int bytes) {
 }
 
 /**
- * This method converts integer to hex
+ * This method converts an integer to hex, used to display data in human-readable form
  * @param hex pointer to the address array 0 index used to store result
  * @param integer integer to convert
  * @param bytes size of integer in bytes, AS7C256 has address pins A0-A14 so max size of address is 15 bytes (7FFF)
@@ -279,7 +260,7 @@ void intToHex(char *hex, int integer, int bytes, int nibbles) {
  * @param binaryRpointer pointer to the address array 0 index used to store result
  */
 void readData(int *binaryRpointer) {
-  *binaryRpointer = digitalRead(DD0);
+  *binaryRpointer++ = digitalRead(DD0);
   *binaryRpointer++ = digitalRead(DD1);
   *binaryRpointer++ = digitalRead(DD2);
   *binaryRpointer++ = digitalRead(DD3);
