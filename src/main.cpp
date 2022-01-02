@@ -3,23 +3,33 @@
 #include <Arduino.h>
 #include <math.h>
 // address pins
-const byte AD0 = 22, AD1 = 23, AD2 = 24, AD3 = 25, AD4 = 26, AD5 = 27, AD6 = 28, AD7 = 29, AD8 = 30, AD9 = 31, AD10 = 32, AD11 = 33, AD12 = 34, AD13 = 35, AD14 = 36;
+const byte AD0 = 22, AD1 = 23, AD2 = 24, AD3 = 25, AD4 = 26, AD5 = 27, AD6 = 28, AD7 = 29,
+           AD8 = 30, AD9 = 31, AD10 = 32, AD11 = 33, AD12 = 34, AD13 = 35, AD14 = 36, AD15 = 37, AD16 = 38, AD17 = 39, AD18 = 40;
 // Data pins
-const byte DD0 = 40, DD1 = 41, DD2 = 42, DD3 = 43, DD4 = 44, DD5 = 45, DD6 = 46, DD7 = 47;
+const byte DD0 = 44, DD1 = 45, DD2 = 46, DD3 = 47, DD4 = 48, DD5 = 49, DD6 = 50, DD7 = 51;
 // control pins
-const byte OE = 50, WE = 51;
-// set max memory address
-int maxAddress = 32768; // AS7C256 - Organization: 32,768 words × 8 bits
+const byte OE = 52, WE = 53;
 
+// UNCOMMENT ONE OF THE VARIABLE SETS FOR SPECIFIC RAM, 15 OR 19 ADDRESS PINS
+
+// variables for K6T4008C1C type ram with 19 address pins
+int maxAddress = 524287;                        // K6T4008C1C - address pins A0-A19, max addres 7FFFF
+const int addressPins = 19;                     // size of max address, K6T4008C1C has address pins A0-A18 so max size of address is 19 bytes
+const int nibbles = 5;                          // K6T4008C1C
+
+/*
+// variables for AS7C256 type ram with 15 address pins
+int maxAddress = 32767;                         // AS7C256 - address pins A0-A14, max addres 7FFF
 const int nibbles = 4;                          // used to create array to store hex conversion
 const int addressPins = 15;                     // size of max address, AS7C256 has address pins A0-A14 so max size of address is 15 bytes
+*/
 boolean pass = true;                            // test result pass
 int testRuns = 1;                               // number of thest runs
 int loops = 0;                                  // do not change, loop counter
 
 int binStringToInt(const char binary[], int bytes);
 void intToBinaryChars(int *binaryArr, int integer, int bytes);
-void intToHex(char *hex, int integer, int bytes, int nibbles);
+void intToHex(char *hex, int integer, int bytes);
 void pinsInput();
 void pinsOutput();
 void writeToRam(int b0, int b1, int b2, int b3, int b4, int b5, int b6, int b7);
@@ -49,6 +59,10 @@ void setup() {
   pinMode(AD12, OUTPUT);
   pinMode(AD13, OUTPUT);
   pinMode(AD14, OUTPUT);
+  pinMode(AD15, OUTPUT);
+  pinMode(AD16, OUTPUT);
+  pinMode(AD17, OUTPUT);
+  pinMode(AD18, OUTPUT);
   pinMode(OE, OUTPUT);
   pinMode(WE, OUTPUT);
   digitalWrite(OE, 1);
@@ -189,8 +203,8 @@ void convertInToHexPrint(int address){
     char *pChar;                  // pointer to start of array
     //address convert to hex
     pChar = &hexArr[0];         // set pointer to address of the first array cell
-    intToHex(pChar, address, 15, 4);
-    for(int ik = 0; ik < 4; ik++) {
+    intToHex(pChar, address, addressPins);
+    for(int ik = 0; ik < nibbles; ik++) {
         SerialUSB.print(hexArr[ik]);  
     }
 }
@@ -216,6 +230,10 @@ void setAddresIntValue(int address){
     digitalWrite(AD12, binaryArr[12]);
     digitalWrite(AD13, binaryArr[13]);
     digitalWrite(AD14, binaryArr[14]);
+    digitalWrite(AD14, binaryArr[15]);
+    digitalWrite(AD14, binaryArr[16]);
+    digitalWrite(AD14, binaryArr[17]);
+    digitalWrite(AD14, binaryArr[18]);
 }
 
 /**
@@ -264,9 +282,9 @@ void intToBinaryChars(int *binaryArr, int integer, int bytes) {
  * @param bytes size of integer in bytes, AS7C256 has address pins A0-A14 so max size of address is 15 bytes (7FFF)
  * @param nibbles size of nibbles to store hex result, 1 nibble = 4 bites
  */
-void intToHex(char *hex, int integer, int bytes, int nibbles) {
-    int binary[bytes];      // store binary representation
-    int i = bytes;          // counter to loop through binary array and store values
+void intToHex(char *hex, int integer, int bytes) {
+    int binary[bytes]; // store binary representation
+    int i = 0;          // counter to loop through binary array and store values
     int num = integer;
     // clear the array of junk values
     for(int m = 0; m <= bytes; m++) {
@@ -277,15 +295,21 @@ void intToHex(char *hex, int integer, int bytes, int nibbles) {
         if(num % 2 == 1) {
             binary[i] = 1;
         }
-        i--;
+        i++;
         num = num / 2;
     }
 
-    int power = pow (2, nibbles - 1);   // largest bite value
+    int power = 8; // largest bite value
+    //int power = pow (2, nibbles - 1); // largest bite value
     int multiply = power;
     int value = 0;
-    for(int j = 0; j <= bytes + 1; j++) {
-        if(multiply == 0) {             // when reached zero, calculate next nibble value
+    for(int j = bytes; j >= 0; j--) {
+        // if byte is 1 then calculate by its value
+        if (binary[j] == 1) {
+            value = value + multiply;
+        }
+        multiply = multiply / 2;
+        if(multiply == 0) {     // when reached zero, calculate next nibble value
             multiply = power;
             // convert value to hex
             switch (value) {
@@ -310,13 +334,8 @@ void intToHex(char *hex, int integer, int bytes, int nibbles) {
                 default:
                     *hex++ = value + 48; // to display num char
             }
-            value = 0;                  // reset value for the next nibble
+            value = 0; // reset value for the next nibble
         }
-        // if byte is 1 then calculate by its value
-        if (binary[j] == 1) {
-            value = value + multiply; 
-        }
-        multiply = multiply / 2;
     }
 }
 

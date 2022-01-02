@@ -8,3 +8,5 @@ The test is run three times looping writing and reading back verifying if data i
 Progress and test results are monitored through native Arduino Due USB. 
 
 The test will run only once, to run it again reset Arduino or power cycle it.
+
+Chips with 15 or 19 address pins can be tested by uncommenting three variables.
